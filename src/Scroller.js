@@ -19,23 +19,24 @@ class Scroller extends React.Component {
 		const innerWrapperRect = this.$innerWrapper.current.getBoundingClientRect();
 		const mainEl = this.$innerWrapper.current.parentElement.parentElement;
 
-		const tooMuchOnTop = Math.abs(innerWrapperRect.top) > this.state.threshold;
+		const tooMuchOnTop = Math.abs(innerWrapperRect.top) > this.threshold;
 		console.log('innerWrapperRect.top', innerWrapperRect.top);
 		console.log('scrollTop', mainEl.scrollTop);
 
 		const distanceToBottom = innerWrapperRect.bottom - mainEl.clientHeight;
-		const isCloseToEndOfList = distanceToBottom < this.state.threshold;
+		const isCloseToEndOfList = distanceToBottom < this.threshold;
 		console.log('Distance To The Bottom:', distanceToBottom);
 		console.log('handleScroll----------');
 
 		if(isCloseToEndOfList) {
-			console.log('adding a page');
+			console.log('----------------------adding a page to the bottom');
 			this.setState({
 				endPageIdx: this.state.endPageIdx + 1
 			});
 		}
 
 		if(tooMuchOnTop) {
+			console.log('----------------------removing a page from the top');
 			this.setState({
 				startPageIdx: this.state.startPageIdx + 1,
 			});
