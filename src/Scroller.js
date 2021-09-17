@@ -9,11 +9,12 @@ class Scroller extends React.Component {
 		this.$innerWrapper = React.createRef();
 		this.$spacer = React.createRef();
 		this.state = {
-			itemsPerPage: 400,
+			itemsPerPage: 500,
 			startPageIdx: 0,
-			endPageIdx: 3
+			endPageIdx: 3,
+			thresholdMultiplier: 2.1
 		}
-		this.handleScrollEvt = throttle(200, this.handleScrollEvt.bind(this));
+		this.handleScrollEvt = throttle(10, this.handleScrollEvt.bind(this));
 	}
 	handleScrollEvt(evt) {
 		const innerWrapperRect = this.$innerWrapper.current.getBoundingClientRect();
@@ -79,7 +80,7 @@ class Scroller extends React.Component {
 		const currHeightOfElementsShown = this.$innerWrapper.current.clientHeight;
 		const approxHeightPerPage = currHeightOfElementsShown / numPagesShown;
 		// this will help us in knowing when to add and remove elements
-		this.threshold = approxHeightPerPage * 2.1; // FIXME no magic numbers!!!
+		this.threshold = approxHeightPerPage * this.state.thresholdMultiplier;
 		const numTotalPages = this.props.children.length / this.state.itemsPerPage;
 		this.maxPages = Math.ceil(numTotalPages);
 		const approxSizeOfWholeList = numTotalPages * approxHeightPerPage;
