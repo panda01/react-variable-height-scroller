@@ -19,27 +19,49 @@ class Scroller extends React.Component {
 		const innerWrapperRect = this.$innerWrapper.current.getBoundingClientRect();
 		const mainEl = this.$innerWrapper.current.parentElement.parentElement;
 
-		const tooMuchOnTop = Math.abs(innerWrapperRect.top) > this.threshold;
-		console.log('innerWrapperRect.top', innerWrapperRect.top);
-		console.log('scrollTop', mainEl.scrollTop);
 
 		const distanceToBottom = innerWrapperRect.bottom - mainEl.clientHeight;
-		const isCloseToEndOfList = distanceToBottom < this.threshold;
-		console.log('Distance To The Bottom:', distanceToBottom);
-		console.log('handleScroll----------');
 
-		if(isCloseToEndOfList) {
-			console.log('----------------------adding a page to the bottom');
-			this.setState({
-				endPageIdx: this.state.endPageIdx + 1
-			});
-		}
 
-		if(tooMuchOnTop) {
-			console.log('----------------------removing a page from the top');
-			this.setState({
-				startPageIdx: this.state.startPageIdx + 1,
-			});
+		const isGoingDown = mainEl.scrollTop > this.lastScrollTopPos;
+
+		this.lastScrollTopPos = mainEl.scrollTop;
+
+		if(isGoingDown) {
+			const isCloseToEndOfList = distanceToBottom < this.threshold;
+			const tooMuchOnTop = Math.abs(innerWrapperRect.top) > this.threshold;
+			if(isCloseToEndOfList) {
+				console.log('----------------------adding a page to the bottom');
+				const isAlreadyAtTheEnd = this.state.endPageIdx === this.maxPages;
+				if(!isAlreadyAtTheEnd) {
+					this.setState({
+						endPageIdx: this.state.endPageIdx + 1
+					});
+				}
+			} else if(tooMuchOnTop) {
+				console.log('----------------------removing a page from the top');
+				this.setState({
+					startPageIdx: this.state.startPageIdx + 1,
+				});
+			}
+		} else {
+			const isTooMuchOnTheBottom = distanceToBottom > this.threshold;
+			const isCloseToTheBegining  = Math.abs(innerWrapperRect.top) < this.threshold;
+			if(isTooMuchOnTheBottom) {
+				console.log('----------------------removing a page from the bottom');
+				this.setState({
+					endPageIdx: this.state.endPageIdx - 1
+				});
+			} else if(isCloseToTheBegining) {
+				const isAlreadyAtTheTop = this.state.startPageIdx === 0;
+				if(isAlreadyAtTheTop) {
+					return;
+				}
+				console.log('----------------------adding a page to the top');
+				this.setState({
+					startPageIdx: this.state.startPageIdx - 1,
+				});
+			}
 		}
 	}
 	getWrapperHeight() {
@@ -47,6 +69,7 @@ class Scroller extends React.Component {
 	}
 	componentDidMount() {
 		this.currSpacerHeight = 0;
+		this.lastScrollTopPos = 0;
 		this.buestGuessTotalHeight();
 	}
 	// after things are mounted take the best guess set the height
@@ -56,8 +79,9 @@ class Scroller extends React.Component {
 		const currHeightOfElementsShown = this.$innerWrapper.current.clientHeight;
 		const approxHeightPerPage = currHeightOfElementsShown / numPagesShown;
 		// this will help us in knowing when to add and remove elements
-		this.threshold = approxHeightPerPage * 2.1;
+		this.threshold = approxHeightPerPage * 2.1; // FIXME no magic numbers!!!
 		const numTotalPages = this.props.children.length / this.state.itemsPerPage;
+		this.maxPages = Math.ceil(numTotalPages);
 		const approxSizeOfWholeList = numTotalPages * approxHeightPerPage;
 		this.$innerWrapper.current.parentElement.style.height = approxSizeOfWholeList + 'px';
 	}
@@ -65,24 +89,24 @@ class Scroller extends React.Component {
 		return this.$innerWrapper.current.clientHeight;
 	}
 	componentDidUpdate(prevProps, prevState, oldScrollerHeight) {
-		console.log(oldScrollerHeight);
-		console.log(this.$innerWrapper.current.clientHeight);
 		const newScrollerHeight = this.$innerWrapper.current.clientHeight;
 		const diff = oldScrollerHeight - newScrollerHeight;
+		// if the height of the inner wrapper has changed, and we've changed the start page,
+		// let's update the spacer at the top to accomodate those changes, and save the information
 		const shouldUpdate = diff !== 0 && this.state.startPageIdx !== prevState.startPageIdx;
-		console.log(diff);
-		console.log('ComponentDidUpdate-----');
+		console.log('Diff between oldScrollerHeight', diff);
 		if(!shouldUpdate) {
 			return;
 		}
 
 		this.currSpacerHeight += diff;
 		
+		// FIXME probably an anti pattern with react
+		// should probably be moved to the render.
+		// Have to experiment with that.
 		this.$spacer.current.style.height = this.currSpacerHeight + 'px';
 	}
 	render() {
-		console.log(this.currSpacerHeight);
-		console.log('render---------');
 		const startElemIdx = this.state.startPageIdx * this.state.itemsPerPage;
 		const endElemIdx = this.state.endPageIdx * this.state.itemsPerPage;
 		const visibleSubSection = this.props.children.slice(startElemIdx, endElemIdx);
